@@ -1,9 +1,13 @@
 package com.simplemobiletools.musicplayer.activities
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.media.AudioManager
+import android.media.MediaMetadataRetriever
 import android.os.Bundle
 import android.os.Environment
 import android.support.v7.widget.DividerItemDecoration
@@ -69,6 +73,7 @@ class MainActivity : SimpleActivity(), SeekBar.OnSeekBarChangeListener {
         checkWhatsNewDialog()
     }
 
+    @SuppressLint("MissingSuperCall")
     override fun onResume() {
         super.onResume()
         setupIconColors()
@@ -262,6 +267,7 @@ class MainActivity : SimpleActivity(), SeekBar.OnSeekBarChangeListener {
         song_title.text = song?.title ?: ""
         song_artist.text = song?.artist ?: ""
         progressbar.max = song?.duration ?: 0
+        album_iv.setImageBitmap(getAlbumImage())
         progressbar.progress = 0
 
         if (songs.isEmpty() && !isThirdPartyIntent) {
@@ -299,6 +305,7 @@ class MainActivity : SimpleActivity(), SeekBar.OnSeekBarChangeListener {
         songs_playlist_empty_add_folder.beVisibleIf(songs.isEmpty())
     }
 
+    @SuppressLint("MissingSuperCall")
     override fun onDestroy() {
         super.onDestroy()
         bus.unregister(this)
@@ -395,4 +402,23 @@ class MainActivity : SimpleActivity(), SeekBar.OnSeekBarChangeListener {
             checkWhatsNew(this, BuildConfig.VERSION_CODE)
         }
     }
+
+    private fun getAlbumImage(): Bitmap {
+        if (File(MusicService.mCurrSong?.path ?: "").exists()) {
+            try {
+                val mediaMetadataRetriever = MediaMetadataRetriever()
+                mediaMetadataRetriever.setDataSource(MusicService.mCurrSong!!.path)
+                val rawArt = mediaMetadataRetriever.embeddedPicture
+                if (rawArt != null) {
+                    val options = BitmapFactory.Options()
+                    val bitmap = BitmapFactory.decodeByteArray(rawArt, 0, rawArt.size, options)
+                    if (bitmap != null)
+                        return bitmap
+                }
+            } catch (e: Exception) {
+            }
+        }
+        return BitmapFactory.decodeResource(resources, R.drawable.ic_headset)
+    }
+
 }
